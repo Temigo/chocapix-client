@@ -30,6 +30,11 @@ angular.module('bars.admin.food', [
             templateUrl: "components/admin/food/appro.html",
             controller: 'admin.ctrl.food.appro'
         })
+        .state('bar.admin.food.auto_appro', {
+            url: "/auto_appro",
+            templateUrl: "components/admin/food/auto_appro.html",
+            controller: 'admin.ctrl.food.auto_appro'
+        })        
         .state('bar.admin.food.inventory', {
             url: "/inventory",
             templateUrl: "components/admin/food/inventory.html",
@@ -130,6 +135,64 @@ angular.module('bars.admin.food', [
     }
 ])
 .controller('admin.ctrl.food.appro',
+    ['$scope', '$modal', 'api.models.buyitemprice', 'api.models.stockitem', 'admin.appro', '$timeout',
+    function($scope, $modal, BuyItemPrice, StockItem, Appro, $timeout) {
+        $scope.appro = Appro;
+        $scope.buy_item_prices = BuyItemPrice.all();
+        $scope.searchl = "";
+        $scope.filterItemsl = function(o) {
+            return o.buyitemprice.filter($scope.searchl);
+        };
+        $scope.filterItems = function(o) {
+            return o.filter(Appro.itemToAdd);
+        };
+        $scope.buy_item_pricesf = function(v) {
+            return _.filter($scope.buy_item_prices, function (bip) {
+                return bip.filter(v);
+            });
+        };
+        $scope.closeAlert = function(index) {
+            Appro.errors.splice(index, 1);
+        };
+
+        $scope.newItem = function (e) {
+            if (e.which === 13) {
+                if (!isNaN(Appro.itemToAdd)) {
+                    var modalNewFood = $modal.open({
+                        templateUrl: 'components/admin/food/modalAdd.html',
+                        controller: 'admin.ctrl.food.addModal',
+                        size: 'lg',
+                        resolve: {
+                            barcode: function () {
+                                return Appro.itemToAdd;
+                            },
+                            buy_item: function () {
+                                return undefined;
+                            }
+                        }
+                    });
+                    modalNewFood.result.then(function (buyItemPrice) {
+                            Appro.addItem(buyItemPrice);
+                            $timeout(function () {
+                                document.getElementById("addApproItemInput").focus();
+                            }, 300);
+                        }, function () {
+
+                    });
+                }
+            }
+        };
+        $(window).bind('beforeunload', function() {
+            if (Appro.in()) {
+                return "Attention, vous allez perdre l'appro en cours !"
+            }
+        });
+        $timeout(function () {
+            document.getElementById("addApproItemInput").focus();
+        }, 300);
+    }
+])
+.controller('admin.ctrl.food.auto_appro',
     ['$scope', '$modal', 'api.models.buyitemprice', 'api.models.stockitem', 'admin.appro', '$timeout',
     function($scope, $modal, BuyItemPrice, StockItem, Appro, $timeout) {
         $scope.appro = Appro;
